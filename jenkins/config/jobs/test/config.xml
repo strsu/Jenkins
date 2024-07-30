@@ -1,0 +1,133 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1436.vfa_244484591f">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2205.vc9522a_9d5711"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2205.vc9522a_9d5711">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.39.0">
+      <projectUrl>https://github.com/strsu/Django_Template/</projectUrl>
+      <displayName></displayName>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <com.cloudbees.jenkins.GitHubPushTrigger plugin="github@1.39.0">
+          <spec></spec>
+        </com.cloudbees.jenkins.GitHubPushTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@3908.vd6b_b_5a_a_54010">
+    <script>pipeline {
+    agent any
+
+    environment {
+        WHOAMI=&quot;dev&quot;
+
+        SECRET_KEY=&quot;0&amp;4cf&amp;euo3dm#&amp;**9@7ljwq37h9debg@b1yuulzsyat2ug2gjo&quot;
+        ELASTICSEARCH_DSL_IP=&quot;0.0.0.0&quot;
+        ELASTICSEARCH_DSL_PORT=&quot;5000&quot;
+        LOGSTASH_PORT=&quot;0.0.0.0&quot;
+
+        POSTGRES_DB=&quot;postgres&quot;
+        POSTGRES_USER=&quot;postgres&quot;
+        POSTGRES_PASSWORD=&quot;postgres&quot;
+        POSTGRES_HOST=&quot;anhae.asuscomm.com&quot;
+        POSTGRES_PORT=&quot;54320&quot;
+
+        BROKER_URL_=&quot;anhae.asuscomm.com&quot;
+        BROKER_PORT_=&quot;6379&quot;
+
+        REDIS_PASSWORD=&quot;RRartDMW3fhT4rb&quot;
+
+        HOST=&quot;anhae.asuscomm.com&quot;
+    }
+
+    stages {
+        stage(&apos;build&apos;) {
+            steps {
+                echo &apos;WHOAMI: $WHOAMI&apos;
+                echo &apos;building the application...&apos;
+
+                sh &apos;docker stop backend&apos;
+                sh &apos;docker rm backend&apos;
+
+                // sh &apos;docker build -t backend_image ./backend&apos;
+
+                sh &apos;&apos;&apos;
+                    docker run -d \
+                        -e WHOAMI=$WHOAMI \
+                        -e SECRET_KEY=$SECRET_KEY \
+                        -e ELASTICSEARCH_DSL_IP=$ELASTICSEARCH_DSL_IP \
+                        -e ELASTICSEARCH_DSL_PORT=$ELASTICSEARCH_DSL_PORT \
+                        -e LOGSTASH_PORT=$LOGSTASH_PORT \
+                        -e POSTGRES_DB=$POSTGRES_DB \
+                        -e POSTGRES_USER=$POSTGRES_USER \
+                        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+                        -e POSTGRES_HOST=$POSTGRES_HOST \
+                        -e POSTGRES_PORT=$POSTGRES_PORT \
+                        -e BROKER_URL_=$BROKER_URL_ \
+                        -e BROKER_PORT_=$BROKER_PORT_ \
+                        -e REDIS_PASSWORD=$REDIS_PASSWORD \
+                        -e HOST=$HOST \
+                        --name backend \
+                        backend_image \
+                        /opt/scripts/start_server.sh
+                &apos;&apos;&apos;
+
+                // sh &apos;&apos;&apos;URL=&quot;http://localhost:8000/api/swagger/&quot;
+                //     STATUS=0
+                //     while [ $STATUS -ne 200 ]; do
+                //         STATUS=$(docker exec backend curl -s -o /dev/null -w &quot;%{http_code}&quot; $URL)
+                //         echo -n -e &quot;\\\\r[`date`] Waiting for the server to respond with status 200... Current State : $STATUS&quot;
+                //         sleep 1
+                //     done
+                // &apos;&apos;&apos;
+
+                script {
+                    def url = &apos;http://localhost:8000/api/swagger/&apos;
+                    int status = 7
+                    
+                    def maxRetries = 100 // 최대 재시도 횟수 (필요에 따라 조정)
+                    def retryCount = 0
+                    def buildSuccess = false
+
+                    while (status != 0 &amp;&amp; retryCount &lt; maxRetries) {
+                        status = sh script: &apos;docker exec backend curl -s -o /dev/null -w &quot;%{http_code}&quot; http://localhost:8000/api/swagger/&apos;, returnStatus: true
+                        // echo -n &quot;\r[`date`] Waiting for the server to respond with status 200... Current State: ${status}&quot;
+                        // echo &quot;[`date`] Waiting for the server to respond with status 200... Current State: ${status}&quot;
+                        retryCount++
+                        echo &quot;Attempt ${retryCount}, status: ${status}&quot;
+                        sleep time: 1, unit: &apos;SECONDS&apos;
+                    }
+
+                    if (!buildSuccess) {
+                        error &quot;Build failed after ${maxRetries} attempts&quot;
+                    }
+                }
+            }
+        }
+        stage(&apos;test&apos;) {
+            steps {
+                echo &apos;testing the application...&apos;
+            }
+        }
+        stage(&apos;deploy&apos;) {
+            steps {
+                echo &apos;deploying the application...&apos;
+            }
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
